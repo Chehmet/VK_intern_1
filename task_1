@@ -1,0 +1,49 @@
+import threading
+
+class TDocument:
+    def __init__(self, url, pub_date, fetch_time, text):
+        self.url = url
+        self.pub_date = pub_date
+        self.fetch_time = fetch_time
+        self.text = text
+        self.first_fetch_time = fetch_time
+
+    def __repr__(self):
+        return f"TDocument(url={self.url}, pub_date={self.pub_date}, fetch_time={self.fetch_time}, text='{self.text}', first_fetch_time={self.first_fetch_time})"
+
+class DocumentProcessor:
+    def __init__(self):
+        self.document_store = {}
+        self.lock = threading.Lock()
+
+    def process(self, d):
+        with self.lock:
+            if d is None:
+                return None
+            if d.url not in self.document_store:
+                self.document_store[d.url] = []
+            self.document_store[d.url].append(d)
+            documents = self.document_store[d.url]
+            documents.sort(key=lambda doc: doc.fetch_time)
+            result = TDocument(
+                url=d.url,
+                pub_date=documents[0].pub_date,
+                fetch_time=documents[-1].fetch_time,
+                text=documents[-1].text
+            )
+            result.first_fetch_time = documents[0].fetch_time
+            return result
+
+def main():
+    processor = DocumentProcessor()
+
+    doc1 = TDocument("http://example.com/doc1", 1, 10, "First doc")
+    doc2 = TDocument("http://example.com/doc1", 1, 20, "Second doc")
+
+    for doc in [doc1, doc2]:
+        processed_doc = processor.process(doc)
+        if processed_doc:
+            print(processed_doc)
+
+if __name__ == "__main__":
+    main()
